@@ -3,8 +3,11 @@ import { Hero } from '@/components/landing/Hero';
 import { FeatureRow } from '@/components/landing/FeatureRow';
 
 export default function Home() {
+  //nav bar gone when user is logged in, hero section and feature row are visible to all users
+  
   return (
     <>
+    
       <NavBar />
       <Hero />
       <FeatureRow />

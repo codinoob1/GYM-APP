@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { MuscleTag } from '@/components/ui/MuscleTag';
 import { ExerciseRow } from './ExerciseRow';
+import Link from 'next/link';
 
 export function Hero() {
   return (
@@ -31,12 +32,11 @@ export function Hero() {
 
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-2 fade-in-up-delay-3">
-              <Button variant="primary" arrow>
-                Get Started Free
-              </Button>
-              <Button variant="secondary">
-                Log In
-              </Button>
+              <Link href="/login">
+                <Button variant="primary" arrow>
+                  Get Started Free
+                </Button>
+              </Link>
             </div>
           </div>
 
