@@ -4,8 +4,9 @@ import React from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { NavBar } from "./NavBar";
+
 import Link from "next/link";
+
 
 const Loginpage = () => {
   const [email, setEmail] = React.useState("");
@@ -30,25 +31,22 @@ const Loginpage = () => {
   const Provider = [
     {
       name: "Google",
-      icon: "/assets/google.svg",
+      icon: "@/assets/google.svg",
       label: "Continue with Google",
     },
   ];
 
   const handleProviderLogin = async (provider) => {
-    const supabase = supabase();
-
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
-      <NavBar />
       <section className="flex items-center justify-center px-6 py-20">
         <Card className="w-full max-w-md">
           <form onSubmit={handleLogin} className="flex flex-col gap-6">
