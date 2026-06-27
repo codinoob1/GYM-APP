@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from 'next/navigation';
 import { supabase } from "../../lib/supabaseClient";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -9,9 +10,20 @@ import Link from "next/link";
 
 
 const Loginpage = () => {
+  const router = useRouter();
+  const [nextPath, setNextPath] = useState('/onboarding');
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextParam = params.get('next');
+    if (nextParam) {
+      setNextPath(nextParam);
+    }
+  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -24,7 +36,7 @@ const Loginpage = () => {
     if (error) {
       setError(error.message);
     } else {
-      console.log("Congratulations! You have successfully logged in.", data);
+      router.push(nextPath);
     }
   }
 
@@ -40,7 +52,7 @@ const Loginpage = () => {
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
   };
