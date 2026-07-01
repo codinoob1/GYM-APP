@@ -26,6 +26,7 @@ export function NavBar() {
     await supabase.auth.signOut();
     router.push('/');
   };
+  
 
   return (
     <nav className="bg-[#0a0a0f] border-b border-[#2a2d37] sticky top-0 z-50">

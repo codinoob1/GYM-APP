@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Onbordflow from '@/components/onBord/Onbordflow';
+import { WorkoutProvider } from '@/lib/WorkoutContext';
 import { createClient } from '@/lib/supabaseServer';
 
 export default async function OnboardingPage() {
@@ -16,5 +17,9 @@ export default async function OnboardingPage() {
     redirect(`/dashboard`);
   }
 
-  return <Onbordflow />;
+  return (
+    <WorkoutProvider>
+      <Onbordflow />
+    </WorkoutProvider>
+  );
 }
