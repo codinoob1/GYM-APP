@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { useWorkout } from '@/lib/WorkoutContext';
+import { supabase } from '@/lib/supabaseClient';
 import Basic from './Basic';
 import Photo from './Photo';
 import Plan from './Plan';
@@ -10,6 +13,7 @@ import Review from './Review';
 const steps = ['Basic Info', 'Photo', 'Your Plan', 'Review'];
 
 const initialFormData = {
+  name: '',
   age: '28',
   weight: '82',
   height: '178',
@@ -25,8 +29,12 @@ const initialFormData = {
 };
 
 export default function Onbordflow() {
+  const router = useRouter();
+  const { saveOnboarding } = useWorkout();
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState(initialFormData);
+  const [parsedPlan, setParsedPlan] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const updateField = (field, value) => {
     setFormData((current) => ({ ...current, [field]: value }));
@@ -63,7 +71,7 @@ export default function Onbordflow() {
       case 2:
         return <Plan formData={formData} onFieldChange={updateField} onPlanFileChange={handlePlanFileChange} />;
       case 3:
-        return <Review formData={formData} />;
+        return <Review formData={formData} onPlanParsed={setParsedPlan} />;
       default:
         return null;
     }
@@ -116,9 +124,32 @@ export default function Onbordflow() {
             <Button
               variant="primary"
               className="min-w-[180px]"
-              onClick={() => setActiveStep((step) => Math.min(steps.length - 1, step + 1))}
+              disabled={saving}
+              onClick={async () => {
+                if (activeStep === steps.length - 1) {
+                  if (!parsedPlan) return;
+                  setSaving(true);
+                  const profile = {
+                    name: formData.name || '',
+                    age: formData.age,
+                    weight: formData.weight,
+                    height: formData.height,
+                    trainingSince: formData.trainingSince,
+                    goal: formData.goal,
+                    photoPreview: formData.photoPreview || '',
+                  };
+                  const rawText = formData.planMode === 'text' ? formData.planText : '[PDF]';
+                  saveOnboarding(profile, parsedPlan, rawText);
+                  await supabase.auth.updateUser({
+                    data: { onboarding_completed: true },
+                  });
+                  router.push('/dashboard');
+                } else {
+                  setActiveStep((step) => Math.min(steps.length - 1, step + 1));
+                }
+              }}
             >
-              {activeStep === steps.length - 1 ? 'Finish' : 'Continue'}
+              {saving ? 'Saving...' : activeStep === steps.length - 1 ? 'Finish' : 'Continue'}
             </Button>
           </div>
         </div>

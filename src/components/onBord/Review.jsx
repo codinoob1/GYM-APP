@@ -51,7 +51,7 @@ function LoadingSkeleton() {
   );
 }
 
-export default function Review({ formData }) {
+export default function Review({ formData, onPlanParsed }) {
   const [parsedPlan, setParsedPlan] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,6 +88,7 @@ export default function Review({ formData }) {
 
       const data = await res.json();
       setParsedPlan(data.plan);
+      onPlanParsed?.(data.plan);
     } catch (err) {
       setError(err.message);
     } finally {

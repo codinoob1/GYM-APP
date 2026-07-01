@@ -7,6 +7,7 @@ export default function Basic({ formData, onFieldChange }) {
     <div className="space-y-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[
+          { name: 'name', label: 'Name', unit: '', placeholder: 'Jamie' },
           { name: 'age', label: 'Age', unit: 'yrs', placeholder: '28' },
           { name: 'weight', label: 'Weight', unit: 'kg', placeholder: '82' },
           { name: 'height', label: 'Height', unit: 'cm', placeholder: '178' },
