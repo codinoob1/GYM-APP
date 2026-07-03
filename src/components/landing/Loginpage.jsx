@@ -70,6 +70,7 @@ const Loginpage = () => {
                 Log in to continue your training.
               </p>
             </div>
+            
 
             {error && (
               <div className="bg-red-900/30 border border-red-500/50 text-red-400 text-sm rounded-lg px-4 py-3 text-center">
