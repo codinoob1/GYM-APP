@@ -13,6 +13,7 @@ export default function LoggingPage() {
   const params = useParams();
   const router = useRouter();
   const { parsedPlan, addWorkoutLog } = useWorkout();
+  
 
   const categorySlug = decodeURIComponent(params.category);
 
@@ -27,15 +28,15 @@ export default function LoggingPage() {
 
   const [step, setStep] = useState(0);
   const [logs, setLogs] = useState([]);
+  const [weight,setWeight] = useState(categoryExercises[0]?.weight ?? 1);
+  const [reps,setReps] = useState(categoryExercises[0]?.reps ?? 1);
+  const [sets,setSets] = useState(categoryExercises[0]?.sets ?? 1);
 
   const currentEx = categoryExercises[step];
   const isLast = step === categoryExercises.length - 1;
 
-  const [weight, setWeight] = useState(currentEx?.weight ?? 0);
-  const [reps, setReps] = useState(currentEx?.reps ?? 0);
-  const [sets, setSets] = useState(currentEx?.sets ?? 0);
-
   const handleSaveAndNext = () => {
+    if (!currentEx) return;
     const entry = {
       exerciseId: currentEx.name,
       date: new Date().toISOString(),
@@ -52,9 +53,9 @@ export default function LoggingPage() {
       setLogs(updatedLogs);
       const next = categoryExercises[step + 1];
       setStep(step + 1);
-      setWeight(next?.weight ?? 0);
-      setReps(next?.reps ?? 0);
-      setSets(next?.sets ?? 0);
+      setWeight(next?.weight ?? 1);
+      setReps(next?.reps ?? 1);
+      setSets(next?.sets ?? 1);
     }
   };
 
@@ -84,7 +85,7 @@ export default function LoggingPage() {
       <TargetBanner exercise={currentEx} />
 
       <div className="flex gap-4">
-        <ExerciseStepper label="Weight" value={weight} unit="kg" onChange={setWeight} min={0} />
+        <ExerciseStepper label="Weight" value={weight} unit="kg" onChange={setWeight} min={1} />
         <ExerciseStepper label="Reps" value={reps} unit="reps" onChange={setReps} min={1} />
         <ExerciseStepper label="Sets" value={sets} unit="sets" onChange={setSets} min={1} />
       </div>
