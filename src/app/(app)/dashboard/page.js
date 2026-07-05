@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkout } from '@/lib/WorkoutContext';
 import GreetingHeader from '@/components/dashboard/GreetingHeader';
@@ -9,7 +10,19 @@ import PlanCard from '@/components/dashboard/PlanCard';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { parsedPlan } = useWorkout();
+  const { parsedPlan, workoutLogs } = useWorkout();
+
+  const latestLogs = useMemo(() => {
+    if (!workoutLogs || workoutLogs.length === 0) return {};
+    const map = {};
+    for (const log of workoutLogs) {
+      const name = log.exerciseId;
+      if (!map[name] || new Date(log.date) > new Date(map[name].date)) {
+        map[name] = log;
+      }
+    }
+    return map;
+  }, [workoutLogs]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
@@ -27,6 +40,7 @@ export default function DashboardPage() {
               <PlanCard
                 key={entry.day}
                 dayEntry={entry}
+                latestLogs={latestLogs}
                 onClick={() => {
                   const first = entry.exercises[0];
                   if (first) {

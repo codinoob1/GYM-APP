@@ -45,9 +45,10 @@ function getCategoryEmoji(category) {
   return '🏋️';
 }
 
-export default function PlanCard({ dayEntry, onClick }) {
+export default function PlanCard({ dayEntry, onClick, latestLogs }) {
   const main = dayEntry.exercises[0];
   const weightColor = getCategoryColor(dayEntry.category);
+  const logged = main ? latestLogs?.[main.name] : null;
 
   return (
     <button
@@ -69,9 +70,16 @@ export default function PlanCard({ dayEntry, onClick }) {
       {main && (
         <>
           <p className="text-xs text-[#8b8d98] truncate">{main.name}</p>
-          <p className={`text-base font-bold mt-0.5 ${weightColor}`}>
-            {main.weight || '—'}kg × {main.reps}
-          </p>
+          {logged ? (
+            <p className={`text-base font-bold mt-0.5 ${weightColor}`}>
+              {logged.weight_kg}kg × {logged.reps_done}
+              <span className="text-[10px] text-[#8b8d98] font-mono ml-1">logged</span>
+            </p>
+          ) : (
+            <p className={`text-base font-bold mt-0.5 ${weightColor}`}>
+              {main.weight || '—'}kg × {main.reps}
+            </p>
+          )}
         </>
       )}
 

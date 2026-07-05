@@ -9,7 +9,7 @@ import Basic from "./Basic";
 import Photo from "./Photo";
 import Plan from "./Plan";
 import Review from "./Review";
-import {getCachedData} from "@/lib/plancatch"
+import { getCachedData } from "@/lib/plancatch"
 
 const steps = ["Basic Info", "Photo", "Your Plan", "Review"];
 
@@ -85,33 +85,6 @@ export default function Onbordflow() {
     }
   };
   async function handleConfrim() {
-    setSaving(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Save profile
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      age: formData.age,
-      weight: formData.weight,
-      height: formData.height,
-      training_since: formData.trainingSince,
-      primary_goal: formData.goal, // ❌ was formData.primary_goal → should be formData.goal
-    });
-
-    // Save workout plan
-    await supabase.from("workout_plans").upsert({
-      user_id: user.id,
-      raw_text: formData.planMode === "text" ? formData.planText : "[PDF]",
-      parsed_json: parsedPlan, // ❌ was formData.parsedPlan → parsedPlan is its own state
-    });
-
-    // Save to cache so dashboard doesn't hit DB on first load
-    getCachedData(parsedPlan); // 
-
-    // Also save to context
     const profile = {
       name: formData.name || "",
       age: formData.age,
@@ -121,14 +94,39 @@ export default function Onbordflow() {
       goal: formData.goal,
       photoPreview: formData.photoPreview || "",
     };
-    saveOnboarding(profile, parsedPlan, formData.planText);
+    const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
-    await supabase.auth.updateUser({
-      data: { onboarding_completed: true },
-    });
+    // Cache-first: save locally immediately, then push to Supabase
+    saveOnboarding(profile, parsedPlan, rawText);
+    getCachedData(parsedPlan);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      await Promise.all([
+        supabase.from("profiles").upsert({
+          id: user.id,
+          age: formData.age,
+          weight: formData.weight,
+          height: formData.height,
+          training_since: formData.trainingSince,
+          primary_goal: formData.goal,
+        }),
+        supabase.from("workout_plans").upsert({
+          user_id: user.id,
+          raw_text: rawText,
+          parsed_json: parsedPlan,
+        }),
+        supabase.auth.updateUser({
+          data: { onboarding_completed: true },
+        }),
+      ]);
+    } catch (e) {
+      console.error("Supabase save failed (data cached locally):", e);
+    }
 
     setSaving(false);
-    console.log("Your Data has been sent to the DB")
     router.push("/dashboard");
   }
 

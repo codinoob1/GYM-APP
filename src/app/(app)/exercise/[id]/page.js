@@ -61,7 +61,7 @@ export default function ExerciseDetailPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-6">
       <button
-        onClick={() => router.back()}
+        onClick={() => router.route("/dashboard")}
         className="text-sm text-[#8b8d98] hover:text-white transition-colors flex items-center gap-1"
       >
         ← Back
@@ -90,7 +90,7 @@ export default function ExerciseDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <CurrentTargetCard exercise={currentExercise} />
+          <CurrentTargetCard exercise={currentExercise} logs={exerciseLogs} />
           <AlternatesList alternates={currentExercise.alternates} />
         </div>
         <div className="space-y-6">

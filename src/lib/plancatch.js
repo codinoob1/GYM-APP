@@ -1,16 +1,24 @@
-import Plan from "@/components/onBord/Plan";
-
 const CACHE_KEY = "gym_tracker_cache";
 
-export function getCachedData(Plan) {
-  localStorage.getItem(CACHE_KEY, JSON.stringify(Plan));
+export function getCachedData(parsedPlan) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(parsedPlan));
+  } catch (e) {
+    console.error("Failed to cache plan:", e);
+  }
 }
 
 export function getFromCached() {
-  const Cached_Plan = localStorage.getItem(CACHE_KEY);
-  return Cached_Plan ? JSON.parse(Cached_Plan) : null;
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function clearCachedData() {
-  localStorage.removeItem(CACHE_KEY);
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {}
 }
