@@ -5,8 +5,9 @@ import { useWorkout } from '@/lib/WorkoutContext';
 import { Button } from '@/components/ui/Button';
 
 export default function ProfilePage() {
-  const { userProfile, parsedPlan, rawPlanText, reanalyzePlan, clearData } = useWorkout();
+  const { userProfile, parsedPlan, rawPlanText, reanalyzePlan, syncToDb } = useWorkout();
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
   const handleReanalyze = async () => {
@@ -27,6 +28,19 @@ export default function ProfilePage() {
       setMsg(e.message);
     } finally {
       setReanalyzing(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSaving(true);
+    setMsg('');
+    try {
+      await syncToDb();
+      setMsg('All data saved to server!');
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -76,19 +90,28 @@ export default function ProfilePage() {
         >
           {reanalyzing ? 'Re-analyzing...' : 'Re-analyze Plan'}
         </Button>
-        {msg && (
-          <p className={`text-sm ${msg.includes('success') ? 'text-[#c4f135]' : 'text-red-400'}`}>
-            {msg}
-          </p>
-        )}
       </div>
 
-      <button
-        onClick={clearData}
-        className="text-sm text-red-400/60 hover:text-red-400 transition-colors"
-      >
-        Clear local data (for testing)
-      </button>
+      <div className="bg-[#13141a] border border-[#2a2d37] rounded-xl p-6 space-y-4">
+        <h2 className="text-sm uppercase tracking-[0.25em] text-[#8b8d98] font-semibold">Data Persistence</h2>
+        <p className="text-xs text-[#8b8d98] leading-relaxed">
+          iOS PWAs may clear local data when closed. Tap below to save your current profile, plan, and logs to the server.
+        </p>
+        <Button
+          variant="secondary"
+          className="w-full justify-center border-[#c4f135] text-[#c4f135]"
+          onClick={handleSync}
+          disabled={saving}
+        >
+          {saving ? 'Saving...' : 'Save to Database'}
+        </Button>
+      </div>
+
+      {msg && (
+        <p className={`text-sm ${msg.includes('success') || msg.includes('saved') ? 'text-[#c4f135]' : 'text-red-400'}`}>
+          {msg}
+        </p>
+      )}
     </div>
   );
 }

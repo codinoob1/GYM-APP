@@ -1,8 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
 
 export async function middleware(request) {
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,37 +10,64 @@ export async function middleware(request) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
+            request.cookies.set(name, value),
+          );
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+            supabaseResponse.cookies.set(name, value, options),
+          );
         },
       },
-    }
-  )
+    },
+  );
 
   // This refreshes the session and writes cookies here (allowed in middleware)
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Protect /onboarding - redirect to login if not logged in
-  if (!user && request.nextUrl.pathname.startsWith('/onboarding')) {
+  if(!user && request.nextUrl.pathname.startsWith('/onboarding')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser();
+  // const pathname = request.nextUrl.pathname;
+  // if (
+  //   !user &&
+  //   (pathname.startsWith("/onboarding") ||
+  //     pathname.startsWith("/dashboard") ||
+  //     pathname.startsWith("/exercise") ||
+  //     pathname.startsWith("/logging") ||
+  //     pathname.startsWith("/progress") ||
+  //     pathname.startsWith("/profile"))
+  // ) {
+  //   return NextResponse.redirect(new URL("/login", request.url));
+  // }
+
+
   // Redirect logged-in users away from login page
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/onboarding', request.url))
+  if (user && request.nextUrl.pathname.startsWith("/login")) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
-  return supabaseResponse
+  return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/login', '/onboarding/:path*', '/dashboard/:path*', '/exercise/:path*', '/logging/:path*', '/progress/:path*', '/profile/:path*'],
-}
+  matcher: [
+    "/login",
+    "/onboarding/:path*",
+    "/dashboard/:path*",
+    "/exercise/:path*",
+    "/logging/:path*",
+    "/progress/:path*",
+    "/profile/:path*",
+  ],
+};
