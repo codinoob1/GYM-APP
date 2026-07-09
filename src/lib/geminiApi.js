@@ -5,6 +5,10 @@ const geminiapi = new GoogleGenAI({
 });
 
 export default async function parseWorkoutplan(planText) {
+  if (!process.env.GEMINI_APIKEY) {
+    throw new Error("GEMINI_APIKEY environment variable is not set in .env.local");
+  }
+
   const prompt1 = `
 You are a fitness data parser. Convert the following workout plan into clean JSON.
 
@@ -33,24 +37,31 @@ Workout plan to parse:
 ${planText}
 """
 `;
-  const res = await geminiapi.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt1,
-    config: {
-      temperature: 0.2,
-    },
-  });
-  
-  const rawText = res.text;
-  if (!rawText) {
-    throw new Error("NO res form gemini 😭");
+  let lastError;
+
+  for (const model of ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]) {
+    try {
+      const res = await geminiapi.models.generateContent({
+        model,
+        contents: prompt1,
+        config: { temperature: 0.2 },
+      });
+
+      const rawText = res.text;
+      if (!rawText) {
+        lastError = new Error(`Gemini ${model} returned empty response`);
+        continue;
+      }
+
+      const cleanres = rawText.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(cleanres);
+      return parsed;
+    } catch (error) {
+      lastError = error;
+    }
   }
-  const cleanres = rawText.replace(/```json|```/g, "").trim();
-  let parsed;
-  try{
-    parsed = JSON.parse(cleanres);
-  } catch (error) {
-    throw new Error("Failed to parse JSON from gemini 😭");
-  }
-  return parsed;
+
+  throw new Error(
+    `Failed to parse plan with Gemini: ${lastError?.message || "unknown error"}`
+  );
 }

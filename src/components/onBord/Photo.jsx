@@ -79,7 +79,7 @@ export default function Photo({ formData, onPhotoSelect }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Selected photo</p>
-            <p className="text-sm text-[#8b8d98]">{formData.photo?.file?.name || 'progress-photo.png'}</p>
+            <p className="text-sm text-[#8b8d98]">{formData.photo?.name || 'progress-photo.png'}</p>
           </div>
         </div>
       )}

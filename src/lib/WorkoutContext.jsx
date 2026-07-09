@@ -19,6 +19,52 @@ const defaultData = {
 
 const WorkoutContext = createContext(null);
 
+function profileToDb(p) {
+  if (!p) return null;
+  return {
+    name: p.name,
+    age: p.age,
+    weight: p.weight,
+    height: p.height,
+    training_since: p.trainingSince,
+    primary_goal: p.goal,
+    photo_url: p.photoPreview,
+  };
+}
+
+function profileFromDb(p) {
+  if (!p) return null;
+  return {
+    name: p.name,
+    age: p.age,
+    weight: p.weight,
+    height: p.height,
+    trainingSince: p.training_since,
+    goal: p.primary_goal,
+    photoPreview: p.photo_url,
+  };
+}
+
+function logToDb(log) {
+  return {
+    exercise_name: log.exerciseId,
+    date: log.date,
+    weight_kg: log.weight_kg,
+    reps_done: log.reps_done,
+    sets_done: log.sets_done,
+  };
+}
+
+function logFromDb(log) {
+  return {
+    exerciseId: log.exercise_name,
+    date: log.date,
+    weight_kg: log.weight_kg,
+    reps_done: log.reps_done,
+    sets_done: log.sets_done,
+  };
+}
+
 export function WorkoutProvider({ children }) {
   const [data, setData] = useState(defaultData);
   const [loaded, setLoaded] = useState(false);
@@ -52,10 +98,10 @@ export function WorkoutProvider({ children }) {
         .order("date", { ascending: true });
 
       setData({
-        userProfile: profile || null,
+        userProfile: profileFromDb(profile),
         parsedPlan: plan?.parsed_json || null,
         rawPlanText: plan?.raw_text || "",
-        workoutLogs: logs || [],
+        workoutLogs: (logs || []).map(logFromDb),
       });
     } catch (e) {
       console.error("Error fetching user data:", e);
@@ -100,7 +146,7 @@ export function WorkoutProvider({ children }) {
 
     const { error } = await supabase.from("profiles").upsert({
       id: user.id,
-      ...profile,
+      ...profileToDb(profile),
     });
     if (!error) {
       setData((prev) => ({
@@ -115,7 +161,7 @@ export function WorkoutProvider({ children }) {
 
     await supabase.from("profiles").upsert({
       id: user.id,
-      ...profile,
+      ...profileToDb(profile),
     });
 
     await supabase.from("workout_plans").upsert({
@@ -134,14 +180,17 @@ export function WorkoutProvider({ children }) {
 
   const addWorkoutLog = useCallback(async (logs) => {
     if (!user) return;
-    const logsWithUser = logs.map((log) => ({ ...log, user_id: user.id }));
+    const dbLogs = logs.map((log) => ({
+      ...logToDb(log),
+      user_id: user.id,
+    }));
     const { error } = await supabase
       .from("workout_logs")
-      .insert(logsWithUser);
+      .insert(dbLogs);
     if (!error) {
       setData((prev) => ({
         ...prev,
-        workoutLogs: [...(prev.workoutLogs || []), ...logsWithUser],
+        workoutLogs: [...(prev.workoutLogs || []), ...logs],
       }));
     }
   }, [user]);
@@ -165,7 +214,7 @@ export function WorkoutProvider({ children }) {
       promises.push(
         supabase.from("profiles").upsert({
           id: user.id,
-          ...data.userProfile,
+          ...profileToDb(data.userProfile),
         })
       );
     }
@@ -188,7 +237,7 @@ export function WorkoutProvider({ children }) {
         promises.push(
           supabase
             .from("workout_logs")
-            .upsert(unsynced.map((log) => ({ ...log, user_id: user.id })))
+            .upsert(unsynced.map((log) => ({ ...logToDb(log), user_id: user.id })))
         );
       }
     }

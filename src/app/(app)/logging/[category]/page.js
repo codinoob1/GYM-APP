@@ -39,7 +39,7 @@ export default function LoggingPage() {
     if (!currentEx) return;
     const entry = {
       exerciseId: currentEx.name,
-      date: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0],
       weight_kg: weight,
       reps_done: reps,
       sets_done: sets,
