@@ -38,7 +38,7 @@ export function WorkoutProvider({ children }) {
         .single();
 
       const { data: plan } = await supabase
-        .from("gym_plans")
+        .from("workout_plans")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -118,7 +118,7 @@ export function WorkoutProvider({ children }) {
       ...profile,
     });
 
-    await supabase.from("gym_plans").upsert({
+    await supabase.from("workout_plans").upsert({
       user_id: user.id,
       raw_text: rawText || "",
       parsed_json: plan,
@@ -148,7 +148,7 @@ export function WorkoutProvider({ children }) {
 
   const reanalyzePlan = useCallback(async (plan) => {
     if (!user) return;
-    await supabase.from("gym_plans").insert({
+    await supabase.from("workout_plans").upsert({
       user_id: user.id,
       raw_text: data.rawPlanText,
       parsed_json: plan,
@@ -172,7 +172,7 @@ export function WorkoutProvider({ children }) {
 
     if (data.parsedPlan) {
       promises.push(
-        supabase.from("gym_plans").upsert({
+        supabase.from("workout_plans").upsert({
           user_id: user.id,
           raw_text: data.rawPlanText || "",
           parsed_json: data.parsedPlan,
