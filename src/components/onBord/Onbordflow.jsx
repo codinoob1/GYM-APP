@@ -24,8 +24,7 @@ const initialFormData = {
   photoError: "",
   planMode: "text",
   planText:
-    "Enter Your workout plan here. You can also upload a PDF file of your plan in the next step.",
-  planFile: null,
+    "",  planFile: null,
   planFileName: "",
 };
 
@@ -95,8 +94,6 @@ export default function Onbordflow() {
     };
     const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
-    // Cache-first: save locally immediately, then push to Supabase
-    saveOnboarding(profile, parsedPlan, rawText);
     getCachedData(parsedPlan);
 
     try {
@@ -107,14 +104,18 @@ export default function Onbordflow() {
       });
 
       if (!res.ok) {
-        console.error("Server onboarding save failed:", await res.text());
+        const errorText = await res.text();
+        console.error("Server onboarding save failed:", errorText);
+        return;
       }
+
+      await saveOnboarding(profile, parsedPlan, rawText);
+      router.push("/dashboard");
     } catch (e) {
       console.error("Onboarding server save failed (data cached locally):", e);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    router.push("/dashboard");
   }
 
   return (

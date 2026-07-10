@@ -70,10 +70,12 @@ export function WorkoutProvider({ children }) {
 
     (async () => {
       // Try server-side cookie-backed endpoint first (reliable in PWA/iOS)
+      let canceled = false;
       try {
         const res = await fetch('/api/user-data');
         if (res.ok) {
           const json = await res.json();
+          if (canceled) return;
           setUser(json.user ?? null);
           setData({
             userProfile: json.profile ?? null,

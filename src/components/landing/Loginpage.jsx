@@ -39,8 +39,7 @@ const Loginpage = () => {
       router.push(nextPath);
     }
   }
-  console.log("data", data);
-  console.log("error", error);
+  
 
   const Provider = [
     {

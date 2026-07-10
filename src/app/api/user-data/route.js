@@ -39,7 +39,7 @@ export async function GET() {
 
     return new Response(
       JSON.stringify({ user, profile: profile ?? null, plan: plan ?? null, logs: logs ?? [] }),
-      { status: 200 }
+      
     );
   } catch (error) {
     console.error('user-data route error:', error);

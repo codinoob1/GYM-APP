@@ -16,10 +16,9 @@ export async function POST(req) {
 
     // Upsert profile
     const { error: profileErr } = await supabase.from('profiles').upsert({
+      ...(profile ?? {}),
       id: user.id,
-      ...profile,
     });
-
     // Upsert workout plan
     const { error: planErr } = await supabase.from('workout_plans').upsert({
       user_id: user.id,
