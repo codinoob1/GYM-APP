@@ -68,14 +68,39 @@ export function WorkoutProvider({ children }) {
     if (initDone.current) return;
     initDone.current = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(session.user);
-        fetchUserProfile(session.user.id);
-      } else {
+    (async () => {
+      // Try server-side cookie-backed endpoint first (reliable in PWA/iOS)
+      try {
+        const res = await fetch('/api/user-data');
+        if (res.ok) {
+          const json = await res.json();
+          setUser(json.user ?? null);
+          setData({
+            userProfile: json.profile ?? null,
+            parsedPlan: json.plan?.parsed_json ?? null,
+            rawPlanText: json.plan?.raw_text ?? '',
+            workoutLogs: json.logs ?? [],
+          });
+          setLoaded(true);
+          return;
+        }
+      } catch (e) {
+        console.error('Server user-data fetch failed:', e);
+      }
+
+      // Fallback: use client-side supabase session
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setUser(session.user);
+          fetchUserProfile(session.user.id);
+        } else {
+          setLoaded(true);
+        }
+      } catch (e) {
         setLoaded(true);
       }
-    }).catch(() => setLoaded(true));
+    })();
   }, [fetchUserProfile]);
 
   useEffect(() => {

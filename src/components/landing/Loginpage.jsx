@@ -39,6 +39,10 @@ const Loginpage = () => {
       router.push(nextPath);
     }
   }
+<<<<<<< HEAD
+=======
+  
+>>>>>>> 4bce370 (Fixed from suggests from coderabbit)
 
   const Provider = [
     {

@@ -25,8 +25,12 @@ const initialFormData = {
   photoError: "",
   planMode: "text",
   planText:
+<<<<<<< HEAD
     "Monday - Chest/Triceps:\nBench Press: 4x8 @ 80kg\nIncline DB Press: 3x10 @ 28kg\nCable Tricep Pushdown: 3x12 @ 22.5kg",
   planFile: null,
+=======
+    "",  planFile: null,
+>>>>>>> 4bce370 (Fixed from suggests from coderabbit)
   planFileName: "",
 };
 
@@ -96,14 +100,13 @@ export default function Onbordflow() {
     };
     const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
-    // Cache-first: save locally immediately, then push to Supabase
-    saveOnboarding(profile, parsedPlan, rawText);
     getCachedData(parsedPlan);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
+<<<<<<< HEAD
       await Promise.all([
         supabase.from("profiles").upsert({
           id: user.id,
@@ -124,10 +127,21 @@ export default function Onbordflow() {
       ]);
     } catch (e) {
       console.error("Supabase save failed (data cached locally):", e);
-    }
+=======
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server onboarding save failed:", errorText);
+        return;
+      }
 
-    setSaving(false);
-    router.push("/dashboard");
+      await saveOnboarding(profile, parsedPlan, rawText);
+      router.push("/dashboard");
+    } catch (e) {
+      console.error("Onboarding server save failed (data cached locally):", e);
+    } finally {
+      setSaving(false);
+>>>>>>> 4bce370 (Fixed from suggests from coderabbit)
+    }
   }
 
   return (
