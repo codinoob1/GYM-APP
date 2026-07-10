@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWorkout } from "@/lib/WorkoutContext";
-import { supabase } from "@/lib/supabaseClient";
 import Basic from "./Basic";
 import Photo from "./Photo";
 import Plan from "./Plan";
 import Review from "./Review";
-import { getCachedData } from "@/lib/plancatch"
+import { getCachedData } from "@/lib/plancatch";
 
 const steps = ["Basic Info", "Photo", "Your Plan", "Review"];
 
@@ -25,8 +24,7 @@ const initialFormData = {
   photoError: "",
   planMode: "text",
   planText:
-    "Monday - Chest/Triceps:\nBench Press: 4x8 @ 80kg\nIncline DB Press: 3x10 @ 28kg\nCable Tricep Pushdown: 3x12 @ 22.5kg",
-  planFile: null,
+    "",  planFile: null,
   planFileName: "",
 };
 
@@ -96,38 +94,28 @@ export default function Onbordflow() {
     };
     const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
-    // Cache-first: save locally immediately, then push to Supabase
-    saveOnboarding(profile, parsedPlan, rawText);
     getCachedData(parsedPlan);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      const res = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, parsedPlan, rawText }),
+      });
 
-      await Promise.all([
-        supabase.from("profiles").upsert({
-          id: user.id,
-          age: formData.age,
-          weight: formData.weight,
-          height: formData.height,
-          training_since: formData.trainingSince,
-          primary_goal: formData.goal,
-        }),
-        supabase.from("workout_plans").upsert({
-          user_id: user.id,
-          raw_text: rawText,
-          parsed_json: parsedPlan,
-        }),
-        supabase.auth.updateUser({
-          data: { onboarding_completed: true },
-        }),
-      ]);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server onboarding save failed:", errorText);
+        return;
+      }
+
+      await saveOnboarding(profile, parsedPlan, rawText);
+      router.push("/dashboard");
     } catch (e) {
-      console.error("Supabase save failed (data cached locally):", e);
+      console.error("Onboarding server save failed (data cached locally):", e);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    router.push("/dashboard");
   }
 
   return (
