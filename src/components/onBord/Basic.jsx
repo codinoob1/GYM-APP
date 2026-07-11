@@ -1,13 +1,13 @@
 'use client';
 
 export default function Basic({ formData, onFieldChange }) {
-  const goals = ['Strength', 'Hypertrophy', 'Endurance', 'Fat Loss'];
+  const goals = ['Strength', 'Hypertrophy', 'Endurance', 'Fat Loss','Calisthenics','Powerlifting','Olympic Weightlifting','CrossFit','Bodybuilding'];
 
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[
-          { name: 'name', label: 'Name', unit: '', placeholder: 'Jamie',type: 'text' },
+          { name: 'name', label: 'Name', unit: '', placeholder: 'Sahil',type: 'text' },
           { name: 'age', label: 'Age', unit: 'yrs', placeholder: '28',type: 'number'  },
           { name: 'weight', label: 'Weight', unit: 'kg', placeholder: '82' , type:'number' },
           { name: 'height', label: 'Height', unit: 'cm', placeholder: '178' },

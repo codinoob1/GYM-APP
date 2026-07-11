@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWorkout } from "@/lib/WorkoutContext";
-import { supabase } from "@/lib/supabaseClient";
 import Basic from "./Basic";
 import Photo from "./Photo";
 import Plan from "./Plan";
 import Review from "./Review";
-import { getCachedData } from "@/lib/plancatch"
+import { getCachedData } from "@/lib/plancatch";
 
 const steps = ["Basic Info", "Photo", "Your Plan", "Review"];
 

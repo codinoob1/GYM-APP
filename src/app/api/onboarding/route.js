@@ -14,14 +14,10 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401 });
     }
 
-    const profileData = profile ?? {};
-    const { photoPreview, ...profilePayload } = profileData;
-
     // Upsert profile
     const { error: profileErr } = await supabase.from('profiles').upsert({
-      ...profilePayload,
+      ...(profile ?? {}),
       id: user.id,
-      photo_url: profilePayload.photo_url || profilePayload.photoPreview || '',
     });
     // Upsert workout plan
     const { error: planErr } = await supabase.from('workout_plans').upsert({
