@@ -24,13 +24,8 @@ const initialFormData = {
   photoPreview: "",
   photoError: "",
   planMode: "text",
-  planText:
-<<<<<<< HEAD
-    "Monday - Chest/Triceps:\nBench Press: 4x8 @ 80kg\nIncline DB Press: 3x10 @ 28kg\nCable Tricep Pushdown: 3x12 @ 22.5kg",
+  planText:"",  
   planFile: null,
-=======
-    "",  planFile: null,
->>>>>>> 4bce370 (Fixed from suggests from coderabbit)
   planFileName: "",
 };
 
@@ -89,58 +84,84 @@ export default function Onbordflow() {
     }
   };
   async function handleConfrim() {
-    const profile = {
-      name: formData.name || "",
-      age: formData.age,
-      weight: formData.weight,
-      height: formData.height,
-      trainingSince: formData.trainingSince,
-      goal: formData.goal,
-      photoPreview: formData.photoPreview || "",
-    };
     const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
     getCachedData(parsedPlan);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-<<<<<<< HEAD
-      await Promise.all([
-        supabase.from("profiles").upsert({
-          id: user.id,
-          age: formData.age,
-          weight: formData.weight,
-          height: formData.height,
-          training_since: formData.trainingSince,
-          primary_goal: formData.goal,
-        }),
-        supabase.from("workout_plans").upsert({
-          user_id: user.id,
-          raw_text: rawText,
-          parsed_json: parsedPlan,
-        }),
-        supabase.auth.updateUser({
-          data: { onboarding_completed: true },
-        }),
-      ]);
-    } catch (e) {
-      console.error("Supabase save failed (data cached locally):", e);
-=======
+      let photoUrl = "";
+      const photoFile = formData.photo?.file;
+
+      if (photoFile) {
+        const buckets = ["avatars", "profile-photos", "photos"];
+        const safeName = `${Date.now()}-${photoFile.name.replace(/\s+/g, "-")}`;
+        let uploaded = false;
+
+        for (const bucket of buckets) {
+          const { error } = await supabase.storage.from(bucket).upload(`${user.id}/${safeName}`, photoFile, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: photoFile.type || "image/jpeg",
+          });
+
+          if (!error) {
+            const { data } = supabase.storage.from(bucket).getPublicUrl(`${user.id}/${safeName}`);
+            photoUrl = data.publicUrl;
+            uploaded = true;
+            break;
+          }
+        }
+
+        if (!uploaded) {
+          throw new Error("Could not upload photo to storage");
+        }
+      }
+
+      const profile = {
+        name: formData.name || "",
+        age: formData.age,
+        weight: formData.weight,
+        height: formData.height,
+        trainingSince: formData.trainingSince,
+        goal: formData.goal,
+        photo_url: photoUrl,
+      };
+
+      const res = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, parsedPlan, rawText }),
+      });
+
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Server onboarding save failed:", errorText);
-        return;
+        throw new Error(errorText || "Server onboarding save failed");
       }
 
       await saveOnboarding(profile, parsedPlan, rawText);
       router.push("/dashboard");
     } catch (e) {
-      console.error("Onboarding server save failed (data cached locally):", e);
+      console.error("Onboarding save failed:", e);
+      await saveOnboarding(
+        {
+          name: formData.name || "",
+          age: formData.age,
+          weight: formData.weight,
+          height: formData.height,
+          trainingSince: formData.trainingSince,
+          goal: formData.goal,
+          photo_url: "",
+        },
+        parsedPlan,
+        rawText
+      );
     } finally {
       setSaving(false);
->>>>>>> 4bce370 (Fixed from suggests from coderabbit)
     }
   }
 

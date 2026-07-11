@@ -10,7 +10,7 @@ export default function GreetingHeader() {
   const now = new Date();
   const dayName = days[now.getDay()];
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'GOOD MORNING' : hour < 18 ? 'GOOD AFTERNOON' : 'GOOD EVENING';
+  const greeting = hour < 12 ? 'GOOD MORNING' : hour < 18 ? 'GOOD AFTERNOON' : 'GOOD EV ENING';
   const name = userProfile?.name || 'ATHLETE';
 
   const todayCategory = parsedPlan?.find(
