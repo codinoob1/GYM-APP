@@ -16,8 +16,15 @@ export async function POST(req) {
 
     // Upsert profile
     const { error: profileErr } = await supabase.from('profiles').upsert({
-      ...(profile ?? {}),
       id: user.id,
+      name: profile.name || '',
+      age: profile.age,
+      weight: profile.weight,
+      height: profile.height,
+      training_since: profile.trainingSince,
+      primary_goal: profile.goal,
+      photo_url: profile.photo_url,
+
     });
     // Upsert workout plan
     const { error: planErr } = await supabase.from('workout_plans').upsert({
