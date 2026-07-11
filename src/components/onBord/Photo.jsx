@@ -7,8 +7,8 @@ export default function Photo({ formData, onPhotoSelect }) {
 
   const handleFile = (file) => {
     if (!file) return;
-    if (file.type !== 'image/png') {
-      onPhotoSelect(null, 'Please upload a PNG image only.');
+    if (!file.type.startsWith('image/')) {
+      onPhotoSelect(null, 'Please upload an image file.');
       return;
     }
 
@@ -53,7 +53,7 @@ export default function Photo({ formData, onPhotoSelect }) {
         </div>
         <div className="mt-6 space-y-3">
           <p className="text-white font-semibold">Drag & drop or click to upload</p>
-          <p className="text-sm text-[#6e7387]">PNG only, up to 10MB</p>
+          <p className="text-sm text-[#6e7387]">Images up to a reasonable size; the file is uploaded directly to storage.</p>
           <button
             type="button"
             onClick={handleChooseFile}
@@ -66,7 +66,7 @@ export default function Photo({ formData, onPhotoSelect }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png"
+          accept="image/*"
           className="hidden"
           onChange={handleChange}
         />
