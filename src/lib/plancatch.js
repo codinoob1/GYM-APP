@@ -1,6 +1,6 @@
 //replace with React api context memory insted of local storage
 
-const CACHE_KEY = "gym_tracker_cache";
+const CACHE_KEY = "V2";
 
 export function getCachedData(parsedPlan) {
   try {

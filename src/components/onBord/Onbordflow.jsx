@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWorkout } from "@/lib/WorkoutContext";
+import { supabase } from "@/lib/supabaseClient";
 import Basic from "./Basic";
 import Photo from "./Photo";
 import Plan from "./Plan";
@@ -83,20 +84,48 @@ export default function Onbordflow() {
     }
   };
   async function handleConfrim() {
-    const profile = {
-      name: formData.name || "",
-      age: formData.age,
-      weight: formData.weight,
-      height: formData.height,
-      trainingSince: formData.trainingSince,
-      goal: formData.goal,
-      photoPreview: formData.photoPreview || "",
-    };
     const rawText = formData.planMode === "text" ? formData.planText : "[PDF]";
 
     getCachedData(parsedPlan);
 
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      let photoUrl = "";
+      const photoFile = formData.photo?.file;
+
+      if (photoFile) {
+        const safeName = `${Date.now()}-${photoFile.name.replace(/\s+/g, "-")}`;
+        const storagePath = `${user.id}/${safeName}`;
+        const { error } = await supabase.storage
+          .from("avatars")
+          .upload(storagePath, photoFile, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: photoFile.type || "image/jpeg",
+          });
+
+        if (error) {
+          throw new Error(error.message || "Photo upload failed");
+        }
+
+        const { data } = supabase.storage.from("avatars").getPublicUrl(storagePath);
+        photoUrl = data.publicUrl;
+      }
+
+      const profile = {
+        name: formData.name || "",
+        age: formData.age,
+        weight: formData.weight,
+        height: formData.height,
+        trainingSince: formData.trainingSince,
+        goal: formData.goal,
+        photo_url: photoUrl,
+      };
+
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,14 +134,26 @@ export default function Onbordflow() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Server onboarding save failed:", errorText);
-        return;
+        throw new Error(errorText || "Server onboarding save failed");
       }
 
       await saveOnboarding(profile, parsedPlan, rawText);
       router.push("/dashboard");
     } catch (e) {
-      console.error("Onboarding server save failed (data cached locally):", e);
+      console.error("Onboarding save failed:", e);
+      await saveOnboarding(
+        {
+          name: formData.name || "",
+          age: formData.age,
+          weight: formData.weight,
+          height: formData.height,
+          trainingSince: formData.trainingSince,
+          goal: formData.goal,
+          photo_url: "",
+        },
+        parsedPlan,
+        rawText
+      );
     } finally {
       setSaving(false);
     }
