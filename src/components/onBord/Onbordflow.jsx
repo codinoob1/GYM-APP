@@ -88,14 +88,15 @@ export default function Onbordflow() {
 
     getCachedData(parsedPlan);
 
+    let photoUrl = "";
+
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      let photoUrl = "";
-      const photoFile = formData.photo?.file;
+      const photoFile = formData.photo;
 
       if (photoFile) {
         const safeName = `${Date.now()}-${photoFile.name.replace(/\s+/g, "-")}`;
@@ -149,7 +150,7 @@ export default function Onbordflow() {
           height: formData.height,
           trainingSince: formData.trainingSince,
           goal: formData.goal,
-          photo_url: "",
+          photo_url: photoUrl,
         },
         parsedPlan,
         rawText

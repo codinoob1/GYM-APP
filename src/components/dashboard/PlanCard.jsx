@@ -77,7 +77,7 @@ export default function PlanCard({ dayEntry, onClick, latestLogs }) {
             </p>
           ) : (
             <p className={`text-base font-bold mt-0.5 ${weightColor}`}>
-              {main.weight || '—'}kg × {main.reps}
+              {main.weight ?? '—'}kg × {main.reps}
             </p>
           )}
         </>
