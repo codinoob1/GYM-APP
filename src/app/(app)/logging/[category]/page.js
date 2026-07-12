@@ -38,7 +38,7 @@ export default function LoggingPage() {
   const handleSaveAndNext = () => {
     if (!currentEx) return;
     const entry = {
-      exerciseId: currentEx.name,
+      exercise_name: currentEx.name,
       date: new Date().toISOString(),
       weight_kg: weight,
       reps_done: reps,
