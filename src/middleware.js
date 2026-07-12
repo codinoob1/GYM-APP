@@ -54,7 +54,8 @@ export async function middleware(request) {
 
   // Redirect logged-in users away from login page
   if (user && request.nextUrl.pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/onboarding", request.url));
+    const target = user.user_metadata?.onboarding_completed ? "/dashboard" : "/onboarding";
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   return supabaseResponse;

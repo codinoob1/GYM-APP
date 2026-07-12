@@ -8,6 +8,10 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (user?.user_metadata?.onboarding_completed) {
+    redirect('/dashboard');
+  }
+
   if (user && !user.user_metadata?.onboarding_completed) {
     redirect('/onboarding');
   }

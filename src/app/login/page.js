@@ -8,7 +8,7 @@ export default async function LoginRoute() {
 
   if (user) {
     if (user.user_metadata?.onboarding_completed) {
-      redirect('/');
+      redirect('/dashboard');
     } else {
       redirect('/onboarding');
     }

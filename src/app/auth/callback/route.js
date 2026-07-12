@@ -13,9 +13,10 @@ export async function GET(request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+    const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && session?.user) {
+      const targetPath = next && next !== '/' ? next : (session.user.user_metadata?.onboarding_completed ? '/dashboard' : '/onboarding')
+      return NextResponse.redirect(`${origin}${targetPath}`)
     }
   }
 
