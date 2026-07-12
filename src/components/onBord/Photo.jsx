@@ -4,11 +4,16 @@ import { useRef } from 'react';
 
 export default function Photo({ formData, onPhotoSelect }) {
   const fileInputRef = useRef(null);
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
   const handleFile = (file) => {
     if (!file) return;
-    if (file.type !== 'image/png') {
-      onPhotoSelect(null, 'Please upload a PNG image only.');
+    if (!file.type.startsWith('image/')) {
+      onPhotoSelect(null, 'Please upload an image file.');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      onPhotoSelect(null, 'Please upload an image smaller than 10MB.');
       return;
     }
 
@@ -53,7 +58,7 @@ export default function Photo({ formData, onPhotoSelect }) {
         </div>
         <div className="mt-6 space-y-3">
           <p className="text-white font-semibold">Drag & drop or click to upload</p>
-          <p className="text-sm text-[#6e7387]">PNG only, up to 10MB</p>
+          <p className="text-sm text-[#6e7387]">Images up to 10MB; the file is uploaded directly to storage.</p>
           <button
             type="button"
             onClick={handleChooseFile}
@@ -66,7 +71,7 @@ export default function Photo({ formData, onPhotoSelect }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png"
+          accept="image/*"
           className="hidden"
           onChange={handleChange}
         />
@@ -79,7 +84,7 @@ export default function Photo({ formData, onPhotoSelect }) {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Selected photo</p>
-            <p className="text-sm text-[#8b8d98]">{formData.photo?.file?.name || 'progress-photo.png'}</p>
+            <p className="text-sm text-[#8b8d98]">{formData.photo?.name || 'progress-photo.png'}</p>
           </div>
         </div>
       )}

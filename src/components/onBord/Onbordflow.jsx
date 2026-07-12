@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useWorkout } from "@/lib/WorkoutContext";
+import { supabase } from "@/lib/supabaseClient";
 import Basic from "./Basic";
 import Photo from "./Photo";
 import Plan from "./Plan";
@@ -23,8 +24,8 @@ const initialFormData = {
   photoPreview: "",
   photoError: "",
   planMode: "text",
-  planText:"",  
-  planFile: null,
+  planText:
+    "",  planFile: null,
   planFileName: "",
 };
 
@@ -87,38 +88,33 @@ export default function Onbordflow() {
 
     getCachedData(parsedPlan);
 
+    let photoUrl = "";
+
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      let photoUrl = "";
-      const photoFile = formData.photo?.file;
+      const photoFile = formData.photo;
 
       if (photoFile) {
-        const buckets = ["avatars", "profile-photos", "photos"];
         const safeName = `${Date.now()}-${photoFile.name.replace(/\s+/g, "-")}`;
-        let uploaded = false;
-
-        for (const bucket of buckets) {
-          const { error } = await supabase.storage.from(bucket).upload(`${user.id}/${safeName}`, photoFile, {
+        const storagePath = `${user.id}/${safeName}`;
+        const { error } = await supabase.storage
+          .from("avatars")
+          .upload(storagePath, photoFile, {
             cacheControl: "3600",
             upsert: true,
             contentType: photoFile.type || "image/jpeg",
           });
 
-          if (!error) {
-            const { data } = supabase.storage.from(bucket).getPublicUrl(`${user.id}/${safeName}`);
-            photoUrl = data.publicUrl;
-            uploaded = true;
-            break;
-          }
+        if (error) {
+          throw new Error(error.message || "Photo upload failed");
         }
 
-        if (!uploaded) {
-          throw new Error("Could not upload photo to storage");
-        }
+        const { data } = supabase.storage.from("avatars").getPublicUrl(storagePath);
+        photoUrl = data.publicUrl;
       }
 
       const profile = {
@@ -154,7 +150,7 @@ export default function Onbordflow() {
           height: formData.height,
           trainingSince: formData.trainingSince,
           goal: formData.goal,
-          photo_url: "",
+          photo_url: photoUrl,
         },
         parsedPlan,
         rawText

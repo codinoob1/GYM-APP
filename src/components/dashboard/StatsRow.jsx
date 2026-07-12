@@ -17,13 +17,38 @@ function StatCard({ label, value, unit }) {
 }
 
 export default function StatsRow() {
-  const { getWorkoutCount, getVolume } = useWorkout();
+  const { getWorkoutCount, getVolume, workoutLogs } = useWorkout();
+
+  const streak = (() => {
+    if (!workoutLogs?.length) return 0;
+
+    const uniqueDays = [...new Set(workoutLogs.map((log) => new Date(log.date).toDateString()))].sort(
+      (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+    );
+
+    let currentStreak = 1;
+    let previousDay = new Date(uniqueDays[0]);
+
+    for (let index = 1; index < uniqueDays.length; index += 1) {
+      const currentDay = new Date(uniqueDays[index]);
+      const diffDays = Math.round((currentDay.getTime() - previousDay.getTime()) / 86400000);
+
+      if (diffDays === 1) {
+        currentStreak += 1;
+        previousDay = currentDay;
+      } else if (diffDays > 1) {
+        break;
+      }
+    }
+
+    return currentStreak;
+  })();
 
   return (
     <div className="flex flex-wrap gap-4">
       <StatCard label="Workouts" value={getWorkoutCount()} unit="this month" />
       <StatCard label="Volume" value={(getVolume() / 1000).toFixed(1)} unit="tonnes" />
-      <StatCard label="Streak" value="0" unit="weeks" />
+      <StatCard label="Streak" value={streak} unit="days" />
     </div>
   );
 }

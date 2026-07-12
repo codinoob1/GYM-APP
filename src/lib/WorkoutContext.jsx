@@ -19,6 +19,18 @@ const defaultData = {
 
 const WorkoutContext = createContext(null);
 
+function normalizeProfile(profile) {
+  if (!profile) return null;
+
+  return {
+    ...profile,
+    trainingSince: profile.trainingSince ?? profile.training_since ?? "",
+    goal: profile.goal ?? profile.primary_goal ?? "",
+    photo_url: profile.photo_url ?? "",
+    photoPreview: profile.photoPreview ?? profile.photo_url ?? "",
+  };
+}
+
 export function WorkoutProvider({ children }) {
   const [data, setData] = useState(defaultData);
   const [loaded, setLoaded] = useState(false);
@@ -52,7 +64,7 @@ export function WorkoutProvider({ children }) {
         .order("date", { ascending: true });
 
       setData({
-        userProfile: profile || null,
+        userProfile: normalizeProfile(profile || null),
         parsedPlan: plan?.parsed_json || null,
         rawPlanText: plan?.raw_text || "",
         workoutLogs: logs || [],
@@ -70,27 +82,31 @@ export function WorkoutProvider({ children }) {
 
     (async () => {
       // Try server-side cookie-backed endpoint first (reliable in PWA/iOS)
+      let canceled = false;
       try {
-        const res = await fetch('/api/user-data');
+        const res = await fetch("/api/user-data");
         if (res.ok) {
           const json = await res.json();
+          if (canceled) return;
           setUser(json.user ?? null);
           setData({
-            userProfile: json.profile ?? null,
+            userProfile: normalizeProfile(json.profile ?? null),
             parsedPlan: json.plan?.parsed_json ?? null,
-            rawPlanText: json.plan?.raw_text ?? '',
+            rawPlanText: json.plan?.raw_text ?? "",
             workoutLogs: json.logs ?? [],
           });
           setLoaded(true);
           return;
         }
       } catch (e) {
-        console.error('Server user-data fetch failed:', e);
+        console.error("Server user-data fetch failed:", e);
       }
 
       // Fallback: use client-side supabase session
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (session) {
           setUser(session.user);
           fetchUserProfile(session.user.id);
@@ -104,82 +120,104 @@ export function WorkoutProvider({ children }) {
   }, [fetchUserProfile]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          fetchUserProfile(session.user.id);
-        } else {
-          setUser(null);
-          setData(defaultData);
-          setLoaded(true);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setData(defaultData);
+        setLoaded(true);
       }
-    );
+    });
 
     return () => subscription?.unsubscribe();
   }, [fetchUserProfile]);
 
-  const updateProfile = useCallback(async (profile) => {
-    if (!user) return;
+  const updateProfile = useCallback(
+    async (profile) => {
+      if (!user) return;
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      ...profile,
-    });
-    if (!error) {
-      setData((prev) => ({
-        ...prev,
-        userProfile: { ...prev.userProfile, ...profile },
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        ...profile,
+      });
+      if (!error) {
+        setData((prev) => ({
+          ...prev,
+          userProfile: { ...prev.userProfile, ...profile },
+        }));
+      }
+    },
+    [user],
+  );
+
+  const saveOnboarding = useCallback(
+    async (profile, plan, rawText) => {
+      if (!user) return;
+
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        ...profile,
+      });
+
+      await supabase.from("workout_plans").upsert({
+        user_id: user.id,
+        raw_text: rawText || "",
+        parsed_json: plan,
+      });
+
+      setData({
+        userProfile: normalizeProfile(profile),
+        parsedPlan: plan,
+        rawPlanText: rawText || "",
+        workoutLogs: [],
+      });
+    },
+    [user],
+  );
+
+  const addWorkoutLog = useCallback(
+    async (logs) => {
+      if (!user) return;
+
+      const logsWithUser = logs.map((log, index) => ({
+        exercise_name: log.exerciseId, // ← fix this line only
+        date: log.date,
+        weight_kg: log.weight_kg,
+        reps_done: log.reps_done,
+        sets_done: log.sets_done,
+        user_id: user.id,
       }));
-    }
-  }, [user]);
 
-  const saveOnboarding = useCallback(async (profile, plan, rawText) => {
-    if (!user) return;
+      const { error } = await supabase
+        .from("workout_logs")
+        .insert(logsWithUser);
 
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      ...profile,
-    });
+      if (!error) {
+        setData((prev) => ({
+          ...prev,
+          workoutLogs: [...(prev.workoutLogs || []), ...logsWithUser],
+        }));
+      }
+    },
+    [user],
+  );
 
-    await supabase.from("workout_plans").upsert({
-      user_id: user.id,
-      raw_text: rawText || "",
-      parsed_json: plan,
-    });
-
-    setData({
-      userProfile: profile,
-      parsedPlan: plan,
-      rawPlanText: rawText || "",
-      workoutLogs: [],
-    });
-  }, [user]);
-
-  const addWorkoutLog = useCallback(async (logs) => {
-    if (!user) return;
-    const logsWithUser = logs.map((log) => ({ ...log, user_id: user.id }));
-    const { error } = await supabase
-      .from("workout_logs")
-      .insert(logsWithUser);
-    if (!error) {
-      setData((prev) => ({
-        ...prev,
-        workoutLogs: [...(prev.workoutLogs || []), ...logsWithUser],
-      }));
-    }
-  }, [user]);
-
-  const reanalyzePlan = useCallback(async (plan) => {
-    if (!user) return;
-    await supabase.from("workout_plans").upsert({
-      user_id: user.id,
-      raw_text: data.rawPlanText,
-      parsed_json: plan,
-    });
-    setData((prev) => ({ ...prev, parsedPlan: plan, workoutLogs: [] }));
-  }, [user, data.rawPlanText]);
+  const reanalyzePlan = useCallback(
+    async (plan) => {
+      if (!user) return;
+      await supabase.from("workout_plans").upsert({
+        user_id: user.id,
+        raw_text: data.rawPlanText,
+        parsed_json: plan,
+      });
+      setData((prev) => ({ ...prev, parsedPlan: plan, workoutLogs: [] }));
+    },
+    [user, data.rawPlanText],
+  );
 
   const syncToDb = useCallback(async () => {
     if (!user) throw new Error("Not logged in");
@@ -190,8 +228,14 @@ export function WorkoutProvider({ children }) {
       promises.push(
         supabase.from("profiles").upsert({
           id: user.id,
-          ...data.userProfile,
-        })
+          name: data.userProfile.name,
+          age: data.userProfile.age,
+          weight: data.userProfile.weight,
+          height: data.userProfile.height,
+          training_since: data.userProfile.trainingSince, // ← mapped
+          primary_goal: data.userProfile.goal, // ← mapped
+          photo_url: data.userProfile.photo_url,
+        }),
       );
     }
 
@@ -201,24 +245,53 @@ export function WorkoutProvider({ children }) {
           user_id: user.id,
           raw_text: data.rawPlanText || "",
           parsed_json: data.parsedPlan,
-        })
+        }),
       );
     }
 
     if (data.workoutLogs.length > 0) {
-      const unsynced = data.workoutLogs.filter(
-        (log) => !log.synced
-      );
+      const unsynced = data.workoutLogs.filter((log) => !log.synced);
       if (unsynced.length > 0) {
         promises.push(
-          supabase
-            .from("workout_logs")
-            .upsert(unsynced.map((log) => ({ ...log, user_id: user.id })))
+          supabase.from("workout_logs").upsert(
+            unsynced.map((log) => ({
+              id: log.id,
+              user_id: user.id,
+              exercise_name: log.exerciseId ?? log.exercise_id,
+              date: log.date,
+              weight_kg: log.weight_kg,
+              reps_done: log.reps_done,
+              sets_done: log.sets_done,
+              notes: log.notes ?? null,
+            })),
+            { onConflict: "id" },
+          ),
         );
       }
     }
 
-    await Promise.all(promises);
+    const results = await Promise.all(promises);
+    const failedResult = results.find((result) => result?.error);
+
+    if (failedResult) {
+      throw new Error(
+        failedResult.error.message || "Failed to sync data to Supabase",
+      );
+    }
+
+    if (data.workoutLogs.length > 0) {
+      setData((prev) => ({
+        ...prev,
+        workoutLogs: prev.workoutLogs.map((log) => ({
+          ...log,
+          synced:
+            log.synced ||
+            !data.workoutLogs.some(
+              (item) => item.id === log.id && !item.synced,
+            ),
+        })),
+      }));
+    }
   }, [user, data]);
 
   const clearData = useCallback(async () => {

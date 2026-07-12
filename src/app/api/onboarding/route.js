@@ -14,11 +14,23 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401 });
     }
 
-    // Upsert profile
-    const { error: profileErr } = await supabase.from('profiles').upsert({
-      ...(profile ?? {}),
+    if (!profile || typeof profile !== 'object') {
+      return new Response(JSON.stringify({ error: 'Profile payload is required' }), { status: 400 });
+    }
+
+    const profilePayload = {
       id: user.id,
-    });
+      name: profile.name || '',
+      age: profile.age,
+      weight: profile.weight,
+      height: profile.height,
+      training_since: profile.trainingSince,
+      primary_goal: profile.goal,
+      photo_url: profile.photo_url || profile.photoPreview || '',
+    };
+
+    // Upsert profile
+    const { error: profileErr } = await supabase.from('profiles').upsert(profilePayload);
     // Upsert workout plan
     const { error: planErr } = await supabase.from('workout_plans').upsert({
       user_id: user.id,
