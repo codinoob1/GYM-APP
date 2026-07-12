@@ -184,44 +184,56 @@ export function WorkoutProvider({ children }) {
   }, [user, data.rawPlanText]);
 
   const syncToDb = useCallback(async () => {
-    if (!user) throw new Error("Not logged in");
+  if (!user) throw new Error("Not logged in");
 
-    const promises = [];
+  const promises = [];
 
-    if (data.userProfile) {
+  if (data.userProfile) {
+    promises.push(
+      supabase.from("profiles").upsert({
+        id: user.id,
+        name: data.userProfile.name,
+        age: data.userProfile.age,
+        weight: data.userProfile.weight,
+        height: data.userProfile.height,
+        training_since: data.userProfile.trainingSince,  // ← mapped
+        primary_goal: data.userProfile.goal,              // ← mapped
+        photo_url: data.userProfile.photo_url,
+      })
+    );
+  }
+
+  if (data.parsedPlan) {
+    promises.push(
+      supabase.from("workout_plans").upsert({
+        user_id: user.id,
+        raw_text: data.rawPlanText || "",
+        parsed_json: data.parsedPlan,
+      })
+    );
+  }
+
+  if (data.workoutLogs.length > 0) {
+    const unsynced = data.workoutLogs.filter((log) => !log.synced);
+    if (unsynced.length > 0) {
       promises.push(
-        supabase.from("profiles").upsert({
-          id: user.id,
-          ...data.userProfile,
-        })
+        supabase.from("workout_logs").upsert(
+          unsynced.map((log) => ({
+            exercise_name: log.exerciseId,  
+            date: log.date,
+            weight_kg: log.weight_kg,
+            reps_done: log.reps_done,
+            sets_done: log.sets_done,
+            notes: null,
+            user_id: user.id,
+          }))
+        )
       );
     }
+  }
 
-    if (data.parsedPlan) {
-      promises.push(
-        supabase.from("workout_plans").upsert({
-          user_id: user.id,
-          raw_text: data.rawPlanText || "",
-          parsed_json: data.parsedPlan,
-        })
-      );
-    }
-
-    if (data.workoutLogs.length > 0) {
-      const unsynced = data.workoutLogs.filter(
-        (log) => !log.synced
-      );
-      if (unsynced.length > 0) {
-        promises.push(
-          supabase
-            .from("workout_logs")
-            .upsert(unsynced.map((log) => ({ ...log, user_id: user.id })))
-        );
-      }
-    }
-
-    await Promise.all(promises);
-  }, [user, data]);
+  await Promise.all(promises);
+}, [user, data]);
 
   const clearData = useCallback(async () => {
     await supabase.auth.signOut();
