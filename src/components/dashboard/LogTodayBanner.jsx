@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkout } from '@/lib/WorkoutContext';
 
@@ -8,8 +9,12 @@ const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 export default function LogTodayBanner() {
   const router = useRouter();
   const { parsedPlan } = useWorkout();
+  const [today, setToday] = useState(days[0]);
 
-  const today = days[new Date().getDay()];
+  useEffect(() => {
+    setToday(days[new Date().getDay()]);
+  }, []);
+
   const todayEntry = parsedPlan?.find(
     (d) => d.day.toLowerCase() === today.toLowerCase()
   );
