@@ -24,10 +24,10 @@ function normalizeProfile(profile) {
 
   return {
     ...profile,
-    trainingSince: profile.trainingSince ?? profile.training_since ?? '',
-    goal: profile.goal ?? profile.primary_goal ?? '',
-    photo_url: profile.photo_url ?? '',
-    photoPreview: profile.photoPreview ?? profile.photo_url ?? '',
+    trainingSince: profile.trainingSince ?? profile.training_since ?? "",
+    goal: profile.goal ?? profile.primary_goal ?? "",
+    photo_url: profile.photo_url ?? "",
+    photoPreview: profile.photoPreview ?? profile.photo_url ?? "",
   };
 }
 
@@ -184,14 +184,12 @@ export function WorkoutProvider({ children }) {
       if (!user) return;
 
       const logsWithUser = logs.map((log, index) => ({
-        id: log.id ?? `${user.id}-${Date.now()}-${index}`,
-        exercise_id: log.exerciseId,
+        exercise_name: log.exerciseId, // ← fix this line only
         date: log.date,
         weight_kg: log.weight_kg,
         reps_done: log.reps_done,
         sets_done: log.sets_done,
         user_id: user.id,
-        synced: true,
       }));
 
       const { error } = await supabase
@@ -201,14 +199,7 @@ export function WorkoutProvider({ children }) {
       if (!error) {
         setData((prev) => ({
           ...prev,
-          workoutLogs: [
-            ...(prev.workoutLogs || []),
-            ...logsWithUser.map((log) => ({
-              ...log,
-              exerciseId: log.exercise_id,
-              synced: true,
-            })),
-          ],
+          workoutLogs: [...(prev.workoutLogs || []), ...logsWithUser],
         }));
       }
     },
@@ -283,7 +274,9 @@ export function WorkoutProvider({ children }) {
     const failedResult = results.find((result) => result?.error);
 
     if (failedResult) {
-      throw new Error(failedResult.error.message || "Failed to sync data to Supabase");
+      throw new Error(
+        failedResult.error.message || "Failed to sync data to Supabase",
+      );
     }
 
     if (data.workoutLogs.length > 0) {
@@ -291,7 +284,11 @@ export function WorkoutProvider({ children }) {
         ...prev,
         workoutLogs: prev.workoutLogs.map((log) => ({
           ...log,
-          synced: log.synced || !data.workoutLogs.some((item) => item.id === log.id && !item.synced),
+          synced:
+            log.synced ||
+            !data.workoutLogs.some(
+              (item) => item.id === log.id && !item.synced,
+            ),
         })),
       }));
     }
