@@ -96,6 +96,24 @@ export function WorkoutProvider({ children }) {
         rawPlanText: plan?.raw_text || "",
         workoutLogs: logs || [],
       });
+      // persist server-fetched state to local cache for offline/PWA use
+      try {
+        if (typeof window !== 'undefined') {
+          const key = `gym-tracker-cache:${userId}`;
+          localStorage.setItem(
+            key,
+            JSON.stringify({
+              userProfile: normalizeProfile(profile || null),
+              parsedPlan: plan?.parsed_json || null,
+              rawPlanText: plan?.raw_text || "",
+              workoutLogs: logs || [],
+              savedAt: Date.now(),
+            }),
+          );
+        }
+      } catch (e) {
+        /* ignore */
+      }
     } catch (e) {
       console.error("Error fetching user data:", e);
     } finally {
@@ -115,11 +133,31 @@ export function WorkoutProvider({ children }) {
           const json = await res.json();
           if (canceled) return;
           setUser(json.user ?? null);
+          // merge with any local cached unsynced logs for the same user
+          let mergedLogs = json.logs ?? [];
+          try {
+            if (typeof window !== 'undefined') {
+              const key = `gym-tracker-cache:${json.user?.id || 'anon'}`;
+              const raw = localStorage.getItem(key);
+              if (raw) {
+                const local = JSON.parse(raw);
+                if (local?.workoutLogs?.length) {
+                  const existingIds = new Set(mergedLogs.map((l) => l.id));
+                  local.workoutLogs.forEach((l) => {
+                    if (!existingIds.has(l.id)) mergedLogs.push(l);
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Failed to read local cache during init', e);
+          }
+
           setData({
             userProfile: normalizeProfile(json.profile ?? null),
             parsedPlan: json.plan?.parsed_json ?? null,
             rawPlanText: json.plan?.raw_text ?? "",
-            workoutLogs: json.logs ?? [],
+            workoutLogs: mergedLogs,
           });
           setLoaded(true);
           return;
@@ -162,6 +200,26 @@ export function WorkoutProvider({ children }) {
 
     return () => subscription?.unsubscribe();
   }, [fetchUserProfile]);
+
+  // Persist context to localStorage for offline/PWA resilience
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const key = `gym-tracker-cache:${user?.id || 'anon'}`;
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          userProfile: data.userProfile,
+          parsedPlan: data.parsedPlan,
+          rawPlanText: data.rawPlanText,
+          workoutLogs: data.workoutLogs,
+          savedAt: Date.now(),
+        }),
+      );
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [data, user]);
 
   const updateProfile = useCallback(
     async (profile) => {
@@ -207,21 +265,35 @@ export function WorkoutProvider({ children }) {
 
   const addWorkoutLog = useCallback(
     async (logs) => {
-      if (!user) return;
+      // Offline-first: update context and local cache only. DB writes happen via `syncToDb`.
+      const localLogs = logs.map((log) => ({
+        id:
+          log.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`),
+        exerciseId: log.exerciseId ?? log.exercise_id ?? log.exercise_name ?? null,
+        date: log.date,
+        weight_kg: log.weight_kg,
+        reps_done: log.reps_done,
+        sets_done: log.sets_done,
+        notes: log.notes ?? null,
+        user_id: user?.id ?? null,
+        synced: false,
+      }));
 
-      const dbLogs = logs.map((log) => logToDb(log, user.id));
+      setData((prev) => ({
+        ...prev,
+        workoutLogs: [...(prev.workoutLogs || []), ...localLogs],
+      }));
 
-      const { error } = await supabase
-        .from("workout_logs")
-        .insert(dbLogs);
-
-      if (!error) {
-        setData((prev) => ({
-          ...prev,
-          workoutLogs: [...(prev.workoutLogs || []), ...dbLogs],
-        }));
-      } else {
-        console.error("Failed to insert workout logs:", error);
+      try {
+        if (typeof window !== 'undefined') {
+          const key = `gym-tracker-cache:${user?.id || 'anon'}`;
+          const raw = localStorage.getItem(key);
+          const parsed = raw ? JSON.parse(raw) : {};
+          parsed.workoutLogs = [...(parsed.workoutLogs || []), ...localLogs];
+          localStorage.setItem(key, JSON.stringify(parsed));
+        }
+      } catch (e) {
+        // ignore storage errors
       }
     },
     [user],
