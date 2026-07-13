@@ -48,6 +48,7 @@ function profileToDb(profile) {
 // Map context log shape → DB columns
 function logToDb(log, userId) {
   return {
+    id: log.id,
     user_id: userId,
     exercise_name: log.exerciseId ?? log.exercise_name ?? null,
     date: log.date ?? new Date().toISOString().split("T")[0],
@@ -201,8 +202,10 @@ export function WorkoutProvider({ children }) {
     return () => subscription?.unsubscribe();
   }, [fetchUserProfile]);
 
-  // Persist context to localStorage for offline/PWA resilience
+  // Persist context to localStorage for offline/PWA resilience once hydration has finished
   useEffect(() => {
+    if (!loaded) return;
+
     try {
       if (typeof window === 'undefined') return;
       const key = `gym-tracker-cache:${user?.id || 'anon'}`;
@@ -219,7 +222,7 @@ export function WorkoutProvider({ children }) {
     } catch (e) {
       // ignore storage errors
     }
-  }, [data, user]);
+  }, [data, user, loaded]);
 
   const updateProfile = useCallback(
     async (profile) => {
@@ -336,11 +339,14 @@ export function WorkoutProvider({ children }) {
       );
     }
 
-    if (data.workoutLogs.length > 0) {
+    const pendingLogs = data.workoutLogs.filter((log) => log.synced === false);
+    if (pendingLogs.length > 0) {
       promises.push(
         supabase
           .from("workout_logs")
-          .insert(data.workoutLogs.map((log) => logToDb(log, user.id))),
+          .upsert(pendingLogs.map((log) => logToDb(log, user.id)), {
+            onConflict: "id",
+          }),
       );
     }
 
@@ -348,6 +354,15 @@ export function WorkoutProvider({ children }) {
     const failedResult = results.find((result) => result?.error);
     if (failedResult) {
       throw new Error(failedResult.error.message || "Failed to sync to Supabase");
+    }
+
+    if (pendingLogs.length > 0) {
+      setData((prev) => ({
+        ...prev,
+        workoutLogs: prev.workoutLogs.map((log) =>
+          log.synced === false ? { ...log, synced: true } : log,
+        ),
+      }));
     }
   }, [user, data]);
 

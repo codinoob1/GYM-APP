@@ -13,7 +13,8 @@ export default function LoggingPage() {
   const params = useParams();
   const router = useRouter();
   const { parsedPlan, addWorkoutLog } = useWorkout();
-  
+  const now = new Date();
+  const data = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const categorySlug = decodeURIComponent(params.category);
 
@@ -39,7 +40,7 @@ export default function LoggingPage() {
     if (!currentEx) return;
     const entry = {
       exercise_name: currentEx.name,
-      date: new Date().toISOString().split('T')[0],
+      date: data,
       weight_kg: weight,
       reps_done: reps,
       sets_done: sets,
