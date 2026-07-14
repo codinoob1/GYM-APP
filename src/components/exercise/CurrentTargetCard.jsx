@@ -1,7 +1,7 @@
-export default function CurrentTargetCard({ exercise, logs }) {
+export default function CurrentTargetCard({ exercise, logs, currentWeight, currentReps, currentSets, coachNote }) {
   if (!exercise) return null;
 
-  const tip = computeCoachTip(logs);
+  const tip = coachNote || computeCoachTip(logs);
 
   return (
     <div className="bg-[#13141a] border border-[#2a2d37] rounded-xl p-5 space-y-4">
@@ -11,15 +11,15 @@ export default function CurrentTargetCard({ exercise, logs }) {
 
       <div className="flex gap-6">
         <div>
-          <p className="text-3xl font-bold text-[#c4f135]">{exercise.weight ?? '—'}</p>
+          <p className="text-3xl font-bold text-[#c4f135]">{currentWeight ?? exercise.weight ?? '—'}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8b8d98] font-mono mt-1">Weight</p>
         </div>
         <div>
-          <p className="text-3xl font-bold text-cyan-400">{exercise.reps}</p>
+          <p className="text-3xl font-bold text-cyan-400">{currentReps ?? exercise.reps}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8b8d98] font-mono mt-1">Reps</p>
         </div>
         <div>
-          <p className="text-3xl font-bold text-cyan-400">{exercise.sets}</p>
+          <p className="text-3xl font-bold text-cyan-400">{currentSets ?? exercise.sets}</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8b8d98] font-mono mt-1">Sets</p>
         </div>
       </div>

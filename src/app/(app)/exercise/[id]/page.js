@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button';
 export default function ExerciseDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { parsedPlan, workoutLogs } = useWorkout();
+  const { parsedPlan, workoutLogs, coachNotes } = useWorkout();
   const exerciseName = decodeURIComponent(params.id);
 
   const allExercises = useMemo(() => {
@@ -35,10 +35,20 @@ export default function ExerciseDetailPage() {
   const exerciseLogs = useMemo(() => {
     if (!workoutLogs || !currentExercise) return [];
     return workoutLogs
-      .filter((log) => log.exerciseId === currentExercise.name)
+      .filter((log) => log.exercise_name === currentExercise.name)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(-20);
   }, [workoutLogs, currentExercise]);
+
+  const lastLog = useMemo(() => {
+    if (!exerciseLogs.length) return null;
+    return [...exerciseLogs].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  }, [exerciseLogs]);
+
+  const currentWeight = lastLog?.weight_kg ?? currentExercise?.weight;
+  const currentReps = lastLog?.reps_done ?? currentExercise?.reps;
+  const currentSets = lastLog?.sets_done ?? currentExercise?.sets;
+  const coachNote = coachNotes?.[currentExercise?.name];
 
   const chartData = useMemo(() => {
     return exerciseLogs.map((log) => ({
@@ -90,7 +100,14 @@ export default function ExerciseDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <CurrentTargetCard exercise={currentExercise} logs={exerciseLogs} />
+          <CurrentTargetCard
+            exercise={currentExercise}
+            logs={exerciseLogs}
+            currentWeight={currentWeight}
+            currentReps={currentReps}
+            currentSets={currentSets}
+            coachNote={coachNote}
+          />
           <AlternatesList alternates={currentExercise.alternates} />
         </div>
         <div className="space-y-6">

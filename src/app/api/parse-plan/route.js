@@ -2,7 +2,7 @@ import parseWorkoutplan from "@/lib/geminiApi";
 
 export async function POST(req) {
   try {
-    const { planText, planFile } = await req.json();
+    const { planText, planFile, prompt } = await req.json();
 
     let text = planText;
 
@@ -21,7 +21,24 @@ export async function POST(req) {
     }
 
     const parsed = await parseWorkoutplan(text);
-    return Response.json({ plan: parsed });
+    let coachNotes = [];
+    if (prompt) {
+      const { GoogleGenAI } = await import('@google/genai');
+      const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_APIKEY });
+      const response = await gemini.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { temperature: 0.3 },
+      });
+      const raw = response.text || '[]';
+      const cleaned = raw.replace(/```json|```/g, '').trim();
+      try {
+        coachNotes = JSON.parse(cleaned);
+      } catch (e) {
+        console.error('coach-notes-parse-error', e);
+      }
+    }
+    return Response.json({ plan: parsed, coachNotes });
   } catch (e) {
     console.error("parse-plan-error", e);
     return Response.json(

@@ -15,6 +15,7 @@ const defaultData = {
   parsedPlan: null,
   rawPlanText: "",
   workoutLogs: [],
+  coachNotes: {},
 };
 
 const WorkoutContext = createContext(null);
@@ -91,12 +92,14 @@ export function WorkoutProvider({ children }) {
         .eq("user_id", userId)
         .order("date", { ascending: true });
 
-      setData({
+      setData((prev) => ({
+        ...prev,
         userProfile: normalizeProfile(profile || null),
         parsedPlan: plan?.parsed_json || null,
         rawPlanText: plan?.raw_text || "",
         workoutLogs: logs || [],
-      });
+        coachNotes: prev.coachNotes || {},
+      }));
       // persist server-fetched state to local cache for offline/PWA use
       try {
         if (typeof window !== 'undefined') {
@@ -154,12 +157,14 @@ export function WorkoutProvider({ children }) {
             console.error('Failed to read local cache during init', e);
           }
 
-          setData({
+          setData((prev) => ({
+            ...prev,
             userProfile: normalizeProfile(json.profile ?? null),
             parsedPlan: json.plan?.parsed_json ?? null,
             rawPlanText: json.plan?.raw_text ?? "",
             workoutLogs: mergedLogs,
-          });
+            coachNotes: prev.coachNotes || {},
+          }));
           setLoaded(true);
           return;
         }
@@ -216,6 +221,7 @@ export function WorkoutProvider({ children }) {
           parsedPlan: data.parsedPlan,
           rawPlanText: data.rawPlanText,
           workoutLogs: data.workoutLogs,
+          coachNotes: data.coachNotes,
           savedAt: Date.now(),
         }),
       );
@@ -261,6 +267,7 @@ export function WorkoutProvider({ children }) {
         parsedPlan: plan,
         rawPlanText: rawText || "",
         workoutLogs: [],
+        coachNotes: {},
       });
     },
     [user],
@@ -310,7 +317,7 @@ export function WorkoutProvider({ children }) {
         raw_text: data.rawPlanText,
         parsed_json: plan,
       });
-      setData((prev) => ({ ...prev, parsedPlan: plan, workoutLogs: [] }));
+      setData((prev) => ({ ...prev, parsedPlan: plan }));
     },
     [user, data.rawPlanText],
   );
@@ -402,6 +409,7 @@ export function WorkoutProvider({ children }) {
         ...data,
         loaded,
         user,
+        setData,
         updateProfile,
         saveOnboarding,
         addWorkoutLog,

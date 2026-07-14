@@ -5,7 +5,7 @@ import { useWorkout } from '@/lib/WorkoutContext';
 import { Button } from '@/components/ui/Button';
 
 export default function ProfilePage() {
-  const { userProfile, parsedPlan, rawPlanText, reanalyzePlan, syncToDb } = useWorkout();
+  const { userProfile, parsedPlan, rawPlanText, workoutLogs, reanalyzePlan, syncToDb, setData } = useWorkout();
   const [reanalyzing, setReanalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
@@ -15,14 +15,56 @@ export default function ProfilePage() {
     setReanalyzing(true);
     setMsg('');
     try {
+      const loggedExerciseNames = [...new Set((workoutLogs || []).map((log) => log.exercise_name).filter(Boolean))];
+      const logSummary = loggedExerciseNames.map((name) => {
+        const logs = (workoutLogs || [])
+          .filter((log) => log.exercise_name === name)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        return {
+          exercise_name: name,
+          last_weight: logs[0]?.weight_kg,
+          last_reps: logs[0]?.reps_done,
+          last_sets: logs[0]?.sets_done,
+          sessions_count: logs.length,
+        };
+      });
+
+      const prompt = `
+You are an AI fitness coach reviewing a user's workout progress.
+
+Original plan:
+${JSON.stringify(parsedPlan, null, 2)}
+
+What the user has actually logged so far:
+${JSON.stringify(logSummary, null, 2)}
+
+For each exercise that has been logged, write a short 1-sentence coaching note.
+Only comment on exercises that appear in the logged data.
+Focus on: are they hitting targets? Should they increase weight or reps?
+Return ONLY a JSON array like this, no explanation, no markdown:
+[
+  { "exercise_name": "Seated Cable Row", "coach_note": "Your note here" },
+  ...
+]
+`;
+
       const res = await fetch('/api/parse-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planText: rawPlanText }),
+        body: JSON.stringify({ planText: rawPlanText, prompt }),
       });
       if (!res.ok) throw new Error('Re-analysis failed');
       const data = await res.json();
       reanalyzePlan(data.plan);
+
+      if (Array.isArray(data.coachNotes)) {
+        const notes = {};
+        data.coachNotes.forEach((item) => {
+          if (item?.exercise_name) notes[item.exercise_name] = item.coach_note;
+        });
+        setData((prev) => ({ ...prev, coachNotes: notes }));
+      }
+
       setMsg('Plan re-analyzed successfully!');
     } catch (e) {
       setMsg(e.message);

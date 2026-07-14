@@ -49,6 +49,11 @@ export default function LoggingPage() {
 
     if (isLast) {
       addWorkoutLog(updatedLogs);
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-full bg-[#13141a] border border-[#2a2d37] px-4 py-3 text-sm text-[#d5d9e6] shadow-lg';
+      toast.textContent = 'Workout saved locally! Go to Profile → Save to DB to back it up.';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
       router.push('/dashboard');
     } else {
       setLogs(updatedLogs);
