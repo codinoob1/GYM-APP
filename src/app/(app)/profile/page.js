@@ -5,7 +5,7 @@ import { useWorkout } from '@/lib/WorkoutContext';
 import { Button } from '@/components/ui/Button';
 
 export default function ProfilePage() {
-  const { userProfile, parsedPlan, rawPlanText, workoutLogs, reanalyzePlan, syncToDb, setData } = useWorkout();
+  const { userProfile, parsedPlan, rawPlanText, workoutLogs, reanalyzePlan, syncToDb, setCoachNotes } = useWorkout();
   const [reanalyzing, setReanalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
@@ -55,16 +55,15 @@ Return ONLY a JSON array like this, no explanation, no markdown:
       });
       if (!res.ok) throw new Error('Re-analysis failed');
       const data = await res.json();
-      reanalyzePlan(data.plan);
+      await reanalyzePlan(data.plan);
 
       if (Array.isArray(data.coachNotes)) {
         const notes = {};
         data.coachNotes.forEach((item) => {
           if (item?.exercise_name) notes[item.exercise_name] = item.coach_note;
         });
-        setData((prev) => ({ ...prev, coachNotes: notes }));
+        setCoachNotes((prev) => ({ ...prev, ...notes }));
       }
-
       setMsg('Plan re-analyzed successfully!');
     } catch (e) {
       setMsg(e.message);

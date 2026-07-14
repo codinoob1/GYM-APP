@@ -25,12 +25,19 @@ export async function POST(req) {
     if (prompt) {
       const { GoogleGenAI } = await import('@google/genai');
       const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_APIKEY });
-      const response = await gemini.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: { temperature: 0.3 },
-      });
-      const raw = response.text || '[]';
+      let response = null;
+
+      try {
+        response = await gemini.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: { temperature: 0.3 },
+        });
+      } catch (e) {
+        console.error("gemini-error", e);
+      }
+
+      const raw = response?.text || '[]';
       const cleaned = raw.replace(/```json|```/g, '').trim();
       try {
         coachNotes = JSON.parse(cleaned);

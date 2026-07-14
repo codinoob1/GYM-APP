@@ -247,6 +247,13 @@ export function WorkoutProvider({ children }) {
     [user],
   );
 
+  const setCoachNotes = useCallback((notes) => {
+    setData((prev) => ({
+      ...prev,
+      coachNotes: typeof notes === "function" ? notes(prev.coachNotes || {}) : notes || {},
+    }));
+  }, []);
+
   const saveOnboarding = useCallback(
     async (profile, plan, rawText) => {
       if (!user) return;
@@ -409,8 +416,8 @@ export function WorkoutProvider({ children }) {
         ...data,
         loaded,
         user,
-        setData,
         updateProfile,
+        setCoachNotes,
         saveOnboarding,
         addWorkoutLog,
         reanalyzePlan,
